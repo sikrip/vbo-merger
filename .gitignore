@@ -1,2 +1,12 @@
 # Project exclude paths
 /target/
+.classpath
+.project
+.settings
+.svn
+.idea
+.metadata
+target
+*.iml
+atlassian-ide-plugin.xml
+out
