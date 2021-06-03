@@ -6,7 +6,6 @@
 .svn
 .idea
 .metadata
-target
 *.iml
 atlassian-ide-plugin.xml
 out
