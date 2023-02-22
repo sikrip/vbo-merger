@@ -32,7 +32,9 @@ public class MergeVboAndEcuFiles {
     private static final String VBO_COMMENTS_SECTION = "[comments]";
     private static final String VBO_COLUMN_NAMES_SECTION = "[column names]";
     private static final String MERGED_ECU_HEADER_PREFIX = "ecu_";
+    private static final String ECU_OLI_PRESS_HEADER = "OilPress";
     private static final double LAST_LAP_MAX_SPEED_PERCENTAGE = 0.95;
+    private static final int NUMBER_OF_SMOOTHING_CYCLES = 40;
 
     public static void main(String[] args) throws IOException {
         printVersion();
@@ -107,7 +109,7 @@ public class MergeVboAndEcuFiles {
     }
 
     /**
-     * Merges the vbo and ecy logs.
+     * Merges the vbo and ecu logs.
      */
     private static Map<String, List<Object>> mergeLogs(Map<String, List<Object>> ecuLog,
                                                        Map<String, List<Object>> vboLog) {
@@ -166,9 +168,7 @@ public class MergeVboAndEcuFiles {
 
         final long timeAtMaxSpeed = (long)dataLog.get(TIME_MILLIS_HEADER).get(maxSpeedIdx);
         final List<Object> timeValues = dataLog.get(TIME_MILLIS_HEADER);
-        for (int i = 0; i < timeValues.size(); i++) {
-            timeValues.set(i, (long)timeValues.get(i) - timeAtMaxSpeed);
-        }
+        timeValues.replaceAll(o -> (long) o - timeAtMaxSpeed);
     }
 
     private static Map<String, List<Object>> readVbo(String filePath) throws IOException {
@@ -228,7 +228,30 @@ public class MergeVboAndEcuFiles {
             timeMillisValues.add((long)(Double.parseDouble(t.toString()) * 1000));
         });
         adjustTimeValues(logData, ECU_SPEED_HEADER);
+
+        for(int i = 0; i< NUMBER_OF_SMOOTHING_CYCLES; i++) {
+            logData.put(ECU_OLI_PRESS_HEADER, smoothValues(logData.get(ECU_OLI_PRESS_HEADER)));
+        }
+
         return logData;
+    }
+
+    /**
+     * Smoothing the raw values by rolling average of 3 values.
+     */
+    private static List<Object> smoothValues(List<Object> rawValues) {
+        final List<Object> smoothedValues = new ArrayList<>();
+        smoothedValues.add(rawValues.get(0));
+        for (int i = 1; i < rawValues.size()-1; i++) {
+            final double avg = (
+                Double.parseDouble(rawValues.get(i - 1).toString()) +
+                Double.parseDouble(rawValues.get(i).toString()) +
+                Double.parseDouble(rawValues.get(i + 1).toString())
+            ) / 3;
+            smoothedValues.add("" + avg);
+        }
+        smoothedValues.add(smoothedValues.get(smoothedValues.size()-1));
+        return smoothedValues;
     }
 
     /**
