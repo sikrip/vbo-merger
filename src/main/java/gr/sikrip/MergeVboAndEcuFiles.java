@@ -10,21 +10,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static gr.sikrip.helper.ThrottlePercentageCalculator.createThrottlePercentageData;
 import static java.lang.Math.abs;
 
 /**
- * Merges .vbo files with ecu log files.
- * Automatically syncs the files by using the log entry with the highest speed
- * that is available to both files.
+ * Merges .vbo files with ecu log files (csv files).
+ * Automatically syncs the files.
+ *
+ * Sync is done by matching the log entries with the highest speed ("Speed" column on ecu data
+ * and "velocity kmh" on .vbo data).
  */
 public class MergeVboAndEcuFiles {
 
     private static final String TIME_MILLIS_HEADER = "TimeMillis";
-
     private static final String ECU_TIME_HEADER = "Time(S)";
     private static final String ECU_SPEED_HEADER = "Speed";
-
     private static final String VBO_SPEED_HEADER = "velocity kmh";
     private static final String VBO_TIME_HEADER = "time";
     private static final String VBO_HEADER_SECTION = "[header]";
@@ -50,7 +49,6 @@ public class MergeVboAndEcuFiles {
         final Map<String, List<Object>> ecuLog = readEcuLog(ecuFilePath);
         final Map<String, List<Object>> vboLog = readVbo(vboFilePath);
         final Map<String, List<Object>> vboWithEcuData = mergeLogs(ecuLog, vboLog);
-        createThrottlePercentageData(vboWithEcuData);
 
         final List<String> allHeadersSorted = vboWithEcuData.keySet().stream().sorted().collect(Collectors.toList());
         final PrintWriter writer = new PrintWriter(outputFilePath, "UTF-8");
@@ -107,7 +105,7 @@ public class MergeVboAndEcuFiles {
     }
 
     /**
-     * Merges the vbo and ecy logs.
+     * Merges the vbo and ecu logs.
      */
     private static Map<String, List<Object>> mergeLogs(Map<String, List<Object>> ecuLog,
                                                        Map<String, List<Object>> vboLog) {
